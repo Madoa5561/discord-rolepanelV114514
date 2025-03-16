@@ -1,0 +1,2 @@
+# discord-roleepanelV114514
+認証パネルv3というbotがサービス終了するらしいので代用を

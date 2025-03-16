@@ -3,7 +3,7 @@
 
 ## install
 
-[https://discord.com/oauth2/authorize?client_id=1350516067004453036&permissions=268790848&integration_type=0&scope=bot](https://discord.com/oauth2/authorize?client_id=1350516067004453036&permissions=8&integration_type=0&scope=bot)
+[https://discord.com/oauth2/authorize?client_id=1350516067004453036&permissions=8&integration_type=0&scope=bot](https://discord.com/oauth2/authorize?client_id=1350516067004453036&permissions=8&integration_type=0&scope=bot)
 
 > [!WARNING]
 > 謎に権限設定してもmissingPermissionが出るので管理者権限になってます

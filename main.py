@@ -97,6 +97,32 @@ async def rp_edit(interaction: discord.Interaction, title: str = None, color: st
     conn.commit()
     await interaction.response.send_message("パネルを編集しました！", ephemeral=True)
 
+@bot.tree.command(name="rp_reset", description="サーバーの役職パネルデータを完全にリセット")
+@app_commands.default_permissions(administrator=True)
+async def rp_reset(interaction: discord.Interaction):
+    if not interaction.guild:
+        await interaction.response.send_message("このコマンドはサーバー内でのみ使用できます。", ephemeral=True)
+        return
+    
+    async with db_lock:
+        channels = [channel.id for channel in interaction.guild.channels]
+        c.execute("SELECT message_id FROM role_panels WHERE channel_id IN ({})".format(
+            ','.join(['?']*len(channels))
+        ), channels)
+        message_ids = [row[0] for row in c.fetchall()]
+        
+        for message_id in message_ids:
+            c.execute("DELETE FROM role_reactions WHERE message_id = ?", (message_id,))
+        
+        c.execute("DELETE FROM role_panels WHERE channel_id IN ({})".format(
+            ','.join(['?']*len(channels))
+        ), channels)
+        conn.commit()
+    
+    selected_panels.clear()
+    await interaction.response.send_message("このサーバーの役職パネルデータを完全にリセットしました。", ephemeral=True)
+
+
 @bot.tree.command(name="rp_select", description="チャンネル内のパネルを選択")
 @app_commands.default_permissions(manage_roles=True)
 async def rp_select(interaction: discord.Interaction):

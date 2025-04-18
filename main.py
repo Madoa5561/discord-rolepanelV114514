@@ -11,7 +11,7 @@ intents.message_content = True
 intents.guild_reactions = True
 intents.members = True
 
-bot = commands.Bot(command_prefix="/", intents=intents)
+bot = commands.Bot(command_prefix="/", intents=intents, help_command=None)
 conn = sqlite3.connect("role_panels.db")
 c = conn.cursor()
 c.execute("""

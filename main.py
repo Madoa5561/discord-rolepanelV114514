@@ -12,7 +12,7 @@ intents.guild_reactions = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="/", intents=intents, help_command=None)
-conn = sqlite3.connect("role_panels.db")
+conn = sqlite3.connect("role_panels.db", check_same_thread=False, isolation_level=None)
 c = conn.cursor()
 c.execute("""
 CREATE TABLE IF NOT EXISTS role_panels (
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS role_reactions (
 """)
 conn.commit()
 selected_panels = {}
-
+db_lock = asyncio.Lock()
 def get_default_emoji(index):
     emojis = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹", "🇺", "🇻", "🇼", "🇽", "🇾", "🇿", "🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "🟤", "⚫", "⚪", "🟥", "🟧", "🟨", "🟩", "🟦", "🟪", "🟫", "⬛", "⬜", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
     return emojis[index] if index < len(emojis) else "❓"
@@ -71,8 +71,9 @@ async def rp_add(interaction: discord.Interaction, role: discord.Role, emoji: st
     embed.add_field(name="", value=f"{emoji}:{role.mention}", inline=False)
     await message.edit(embed=embed)
     await message.add_reaction(emoji)
-    c.execute("INSERT INTO role_reactions (message_id, emoji, role_id) VALUES (?, ?, ?)", (message.id, emoji, role.id))
-    conn.commit()
+    async with db_lock:
+        c.execute("INSERT INTO role_reactions (message_id, emoji, role_id) VALUES (?, ?, ?)", (message.id, emoji, role.id))
+        conn.commit()
     await interaction.response.send_message("役職を追加しました！", ephemeral=True)
 
 @bot.tree.command(name="rp_edit", description="パネルのタイトルや色を編集")
@@ -146,10 +147,10 @@ async def rp_delete(interaction: discord.Interaction):
     if not panel_id:
         await interaction.response.send_message("選択中のパネルがありません。", ephemeral=True)
         return
-    
-    c.execute("DELETE FROM role_panels WHERE message_id = ?", (panel_id,))
-    c.execute("DELETE FROM role_reactions WHERE message_id = ?", (panel_id,))
-    conn.commit()
+    async with db_lock:
+        c.execute("DELETE FROM role_panels WHERE message_id = ?", (panel_id,))
+        c.execute("DELETE FROM role_reactions WHERE message_id = ?", (panel_id,))
+        conn.commit()
     
     selected_panels.pop(interaction.user.id, None)
     await interaction.response.send_message("選択したパネルを削除しました。", ephemeral=True)
@@ -205,9 +206,8 @@ async def rp_copy(interaction: discord.Interaction):
     message = await interaction.channel.fetch_message(int(panel_id))
     embed = message.embeds[0]
     new_message = await interaction.channel.send(embed=embed)
-    
     c.execute("INSERT INTO role_panels (channel_id, message_id, title, color) VALUES (?, ?, ?, ?)",
-              (interaction.channel_id, new_message.id, embed.title, "#000000"))
+        (interaction.channel_id, new_message.id, embed.title, "#000000"))
     c.execute("SELECT emoji, role_id FROM role_reactions WHERE message_id = ?", (panel_id,))
     reactions = c.fetchall()
     
